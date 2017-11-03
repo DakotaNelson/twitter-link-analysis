@@ -1,9 +1,14 @@
+import sys
 import time
 
 import tweepy
 import dataset
 
-from config import config
+try:
+    from config import config
+except ImportError:
+    print("\033[91m[!] Unable to import config.py. Copy config-template.py and fill in the relevant information before trying again.\033[0m")
+    sys.exit(1)
 
 db = dataset.connect('sqlite:///tweet_data.db')
 followees_table = db['followees']
@@ -20,7 +25,7 @@ class LinkStreamer(tweepy.StreamListener):
                 print(url['expanded_url'])
         else:
             # does not have a URL :(
-            print("[!] Found a Tweet without any URLs. Weird.")
+            print("\033[93m[?] Found a Tweet without any URLs. Weird.\033[0m")
             pass
 
     def on_error(self, status_code):
@@ -36,7 +41,7 @@ def limit_handled(cursor):
         try:
             yield cursor.next()
         except tweepy.RateLimitError:
-            print("[!] Rate limit error, sleeping...")
+            print("\033[91m[!] Rate limit error, sleeping...\033[0m")
             time.sleep(15 * 60)
 
 def getFolloweeIds(api):
@@ -55,7 +60,7 @@ if __name__ == "__main__":
     followees = getFolloweeIds(api)
     for followee in followees:
         followees_table.insert({'time': time.time(), 'user_id':followee})
-    print("User to analyze has {} followees.".format(len(followees)))
+    print("Analyzing {}, who has {} followees.".format(config['user'], len(followees)))
 
     # set up the streamer
     linkStreamer = LinkStreamer()
